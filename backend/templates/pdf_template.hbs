@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Personalized Diet & Workout Plan</title>
+    <style>
+        :root {
+            --text-main: #1f2937;
+            --text-muted: #4b5563;
+            --border-light: #e5e7eb;
+            --font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        body {
+            font-family: var(--font-family);
+            color: var(--text-main);
+            background-color: #ffffff;
+            margin: 0;
+            padding: 40px;
+            line-height: 1.6;
+            -webkit-print-color-adjust: exact;
+        }
+        h1, h2, h3, h4 {
+            color: #000000;
+            margin-top: 0;
+        }
+        .header {
+            border-bottom: 2px solid #000000;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+        }
+        .header p {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 14px;
+        }
+        .section-title {
+            font-size: 20px;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 10px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            border: 1px solid var(--border-light);
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        td {
+            font-size: 14px;
+        }
+        .meal-block {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        .meal-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        .meal-meta {
+            font-size: 13px;
+            color: #2563eb;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        ul {
+            margin-top: 5px;
+            padding-left: 20px;
+            font-size: 14px;
+        }
+        li {
+            margin-bottom: 4px;
+        }
+        .instructions {
+            font-size: 14px;
+            background-color: #f9fafb;
+            padding: 15px;
+            border-left: 3px solid var(--text-main);
+            margin-top: 15px;
+        }
+        .workout-day {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        .workout-day strong {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #000;
+        }
+        .footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            page-break-inside: avoid;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Optimal Daily Protocol</h1>
+        <p>Goal: {{goal}} | Base Metrics: {{weight}}kg (BMI: {{bmi}})</p>
+    </div>
+
+    <h2 class="section-title">Metabolic Baseline</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Total Calories</th>
+                <th>Protein Target</th>
+                <th>Carbohydrates</th>
+                <th>Fats Target</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>{{calories}} kcal</strong></td>
+                <td>{{macros.protein}}g</td>
+                <td>{{macros.carbs}}g</td>
+                <td>{{macros.fat}}g</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 class="section-title">Dietary Units</h2>
+
+    {{#each meals}}
+    <div class="meal-block">
+        <div class="meal-title">{{this.name}}</div>
+        <div class="meal-meta">{{this.calories}} kcal</div>
+        <strong>Items Strategy:</strong>
+        <ul>
+            {{#each this.items}}
+            <li><strong>{{this.name}}</strong> ({{this.quantity}}) - {{this.calories}} kcal</li>
+            {{/each}}
+        </ul>
+    </div>
+    {{/each}}
+
+    <h2 class="section-title" style="page-break-before: always;">Tactical Training Split</h2>
+
+    {{#each workout_plan}}
+    <div class="workout-day">
+        <strong>{{this.day}}: {{this.focus}}</strong>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 50%">Exercise Directive</th>
+                    <th style="width: 25%">Sets</th>
+                    <th style="width: 25%">Repeats</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each this.exercises}}
+                <tr>
+                    <td>{{this.name}}</td>
+                    <td>{{this.sets}}</td>
+                    <td>{{this.reps}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </div>
+    {{/each}}
+
+    <div class="footer">
+        <p>This protocol has been dynamically assembled via AI. Consult a medical or fitness professional before undertaking severe dietary or tactical physical alterations.</p>
+        <p><small>Generated uniquely for authorized personnel.</small></p>
+    </div>
+
+</body>
+</html>
