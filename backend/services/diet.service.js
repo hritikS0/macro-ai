@@ -58,6 +58,10 @@ export class DietService {
         aiResult = ValidationService.parseAIOutput(rawOutput);
       } catch (err) {
         console.error(`Attempt ${attempts + 1} failed:`, err.message);
+        if (attempts < maxRetries - 1) {
+          const backoffMs = 500 * Math.pow(2, attempts);
+          await new Promise((resolve) => setTimeout(resolve, backoffMs));
+        }
       }
       attempts++;
     }
@@ -146,4 +150,3 @@ export class DietService {
     return await DietRepository.deleteActivePlan(userId);
   }
 }
-

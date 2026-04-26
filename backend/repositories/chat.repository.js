@@ -28,4 +28,25 @@ export class ChatRepository {
     if (error) throw error;
     return data;
   }
+
+  static async getMessagesPage(userId, planId = null, { limit = 20, before } = {}) {
+    let query = supabase
+      .from("chat_messages")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (planId) {
+      query = query.eq("plan_id", planId);
+    }
+
+    if (before) {
+      query = query.lt("created_at", before);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).reverse();
+  }
 }

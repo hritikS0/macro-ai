@@ -1,32 +1,75 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Send, User, Bot, RefreshCw, ChevronRight, MessageSquare } from 'lucide-react';
+import { Send, Bot, MessageSquare, ChevronDown } from 'lucide-react';
 import api from '../services/api';
 import { cn } from '../utils/cn';
 
-const AICoach = ({ activePlanId, onAction }) => {
+const AICoach = ({ activePlanId }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextBefore, setNextBefore] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
   const scrollRef = useRef(null);
+  const fetchingRef = useRef(false);
 
   useEffect(() => {
     fetchHistory();
   }, [activePlanId]);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (!loadingMore && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
   const fetchHistory = async () => {
     try {
-      const response = await api.get('/diet/chat/history');
-      setMessages(response.data);
+      setHasMore(true);
+      setNextBefore(null);
+      const response = await api.get('/diet/chat/history', { params: { limit: 20 } });
+      const initialMessages = response.data?.messages || [];
+      setMessages(initialMessages);
+      setNextBefore(response.data?.nextBefore || null);
+      setHasMore(initialMessages.length > 0);
     } catch (err) {
       console.error('Failed to fetch chat history');
     }
+  };
+
+  const loadOlder = async () => {
+    if (!hasMore || loadingMore || fetchingRef.current) return;
+    if (!nextBefore) return;
+    fetchingRef.current = true;
+    setLoadingMore(true);
+    try {
+      const el = scrollRef.current;
+      const prevScrollHeight = el?.scrollHeight || 0;
+      const prevScrollTop = el?.scrollTop || 0;
+      const response = await api.get('/diet/chat/history', { params: { limit: 20, before: nextBefore } });
+      const older = response.data?.messages || [];
+      if (older.length === 0) {
+        setHasMore(false);
+        return;
+      }
+      setMessages(prev => [...older, ...prev]);
+      setNextBefore(response.data?.nextBefore || null);
+      requestAnimationFrame(() => {
+        const nextScrollHeight = el?.scrollHeight || 0;
+        if (el) el.scrollTop = (nextScrollHeight - prevScrollHeight) + prevScrollTop;
+      });
+    } catch (err) {
+      // silent
+    } finally {
+      fetchingRef.current = false;
+      setLoadingMore(false);
+    }
+  };
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (el.scrollTop < 40) loadOlder();
   };
 
   const handleSendMessage = async (e) => {
@@ -49,7 +92,7 @@ const AICoach = ({ activePlanId, onAction }) => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-card">
+    <div className="h-full flex flex-col bg-card min-h-0">
       {/* Chat Header */}
       <div className="p-6 border-b flex items-center justify-between bg-card/80 backdrop-blur-md sticky top-0 z-10 border-border">
         <div className="flex items-center gap-3">
@@ -67,7 +110,20 @@ const AICoach = ({ activePlanId, onAction }) => {
       </div>
 
       {/* Chat Body */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar" ref={scrollRef}>
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar min-h-0" ref={scrollRef} onScroll={handleScroll}>
+        {(hasMore && nextBefore) && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={loadOlder}
+              disabled={loadingMore}
+              className="text-[10px] font-black uppercase tracking-widest text-text-secondary hover:text-text transition-colors flex items-center gap-1"
+            >
+              <ChevronDown className="w-3 h-3 rotate-180" />
+              {loadingMore ? 'Loading…' : 'Load older'}
+            </button>
+          </div>
+        )}
         {messages.length === 0 && !loading && (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-40 mt-10">
             <div className="p-4 bg-muted rounded-full mb-4 text-text-secondary">
@@ -110,14 +166,20 @@ const AICoach = ({ activePlanId, onAction }) => {
       </div>
 
       {/* Chat Input */}
-      <div className="p-6 border-t bg-card/80 backdrop-blur-md border-border">
+      <div className="p-6 border-t bg-card/80 backdrop-blur-md border-border sticky bottom-0 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         <form onSubmit={handleSendMessage} className="relative">
-          <input
-            type="text"
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask anything..."
-            className="input pr-12"
+            rows={1}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            className="input pr-12 resize-none leading-6 py-3 min-h-[44px] max-h-32 overflow-y-auto"
           />
           <button
             type="submit"

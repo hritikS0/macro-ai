@@ -296,22 +296,6 @@ const Dashboard = () => {
                             </div>
                           ))}
                         </div>
-                        <div className="p-4 bg-bg-primary/50 text-right">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="text-[10px] uppercase font-black tracking-widest py-1 h-auto"
-                            onClick={() =>
-                              setRefiningSection({
-                                type: "meal",
-                                name: meal.name,
-                              })
-                            }
-                          >
-                            <Sparkles className="w-3 h-3 mr-2 text-brand-primary" />
-                            Refine with AI
-                          </Button>
-                        </div>
                       </Card>
                     ))}
                   </div>
@@ -353,22 +337,6 @@ const Dashboard = () => {
                               </div>
                             </div>
                           ))}
-                        </div>
-                        <div className="pt-4 mt-auto">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="w-full text-[10px] uppercase font-black tracking-widest py-2 h-auto"
-                            onClick={() =>
-                              setRefiningSection({
-                                type: "workout",
-                                name: day.day,
-                              })
-                            }
-                          >
-                            <Sparkles className="w-3 h-3 mr-2 text-brand-primary" />
-                            Refine with AI
-                          </Button>
                         </div>
                       </Card>
                     ))}

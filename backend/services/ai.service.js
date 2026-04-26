@@ -7,6 +7,7 @@ export class AIService {
   static async generateText(prompt) {
     const apiKey = process.env.GEMMA_API_KEY;
     const apiUrl = process.env.GEMMA_API_URL || 'https://integrate.api.nvidia.com/v1/chat/completions';
+    const timeoutMs = Number(process.env.GEMMA_TIMEOUT_MS || 120000);
 
     if (!apiKey) {
       throw new Error('Missing Gemma API Key');
@@ -34,12 +35,17 @@ export class AIService {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
+          timeout: timeoutMs,
         }
       );
 
       return response.data.choices[0].message.content;
     } catch (error) {
+      const isTimeout = error?.code === 'ECONNABORTED';
       console.error('AI Service Error:', error.response?.data || error.message);
+      if (isTimeout) {
+        throw new Error('AI request timed out. Please try again.');
+      }
       throw new Error('Failed to generate diet plan from AI');
     }
   }
@@ -47,6 +53,7 @@ export class AIService {
   static async chat(messages, context = '') {
     const apiKey = process.env.GEMMA_API_KEY;
     const apiUrl = process.env.GEMMA_API_URL || 'https://integrate.api.nvidia.com/v1/chat/completions';
+    const timeoutMs = Number(process.env.GEMMA_CHAT_TIMEOUT_MS || process.env.GEMMA_TIMEOUT_MS || 60000);
 
     const systemPrompt = `
       You are an AI Health & Nutrition Coach. 
@@ -76,12 +83,17 @@ export class AIService {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
+          timeout: timeoutMs,
         }
       );
 
       return response.data.choices[0].message.content;
     } catch (error) {
+      const isTimeout = error?.code === 'ECONNABORTED';
       console.error('AI Chat Service Error:', error.response?.data || error.message);
+      if (isTimeout) {
+        throw new Error('AI Coach timed out. Please resend your message.');
+      }
       throw new Error('AI Coach is temporarily unavailable');
     }
   }

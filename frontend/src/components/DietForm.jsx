@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, Sparkles, User, Ruler, Target } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Sparkles, User, Ruler, Target, Loader2 } from 'lucide-react';
 import Button from './ui/Button';
 import { Card } from './ui/Card';
 import { Input, Select } from './ui/Input';
@@ -15,7 +16,10 @@ const steps = [
 const DietForm = ({ onPlanGenerated }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [statusText, setStatusText] = useState('');
   const [unitSystem, setUnitSystem] = useState('metric');
+  const abortRef = React.useRef(null);
+  const statusTimerRef = React.useRef(null);
   const [formData, setFormData] = useState({
     age: '',
     gender: 'male',
@@ -28,6 +32,21 @@ const DietForm = ({ onPlanGenerated }) => {
 
   React.useEffect(() => {
     fetchProfileData();
+  }, []);
+
+  React.useEffect(() => {
+    if (!loading) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [loading]);
+
+  React.useEffect(() => {
+    return () => {
+      if (statusTimerRef.current) clearInterval(statusTimerRef.current);
+    };
   }, []);
 
   const fetchProfileData = async () => {
@@ -62,7 +81,28 @@ const DietForm = ({ onPlanGenerated }) => {
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
   const generatePlan = async () => {
+    if (loading) return;
     setLoading(true);
+    if (document?.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+    
+    const statusMessages = [
+      'Building your protocol…',
+      'Calibrating calories & macros…',
+      'Assembling meals & workout split…',
+      'Final validation…',
+    ];
+    
+    let i = 0;
+    setStatusText(`${statusMessages[0]} (up to ~2 min)`);
+    
+    if (statusTimerRef.current) clearInterval(statusTimerRef.current);
+    statusTimerRef.current = setInterval(() => {
+      i = (i + 1) % statusMessages.length;
+      setStatusText(`${statusMessages[i]} (up to ~2 min)`);
+    }, 2500);
+    
     try {
       const payload = { ...formData };
       if (unitSystem === 'imperial') {
@@ -70,17 +110,87 @@ const DietForm = ({ onPlanGenerated }) => {
         payload.height = (formData.height * 2.54).toFixed(2);
       }
 
-      const response = await api.post('/diet/generate', payload);
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const response = await api.post('/diet/generate', payload, { timeout: 120000, signal: controller.signal });
       onPlanGenerated(response.data);
     } catch (err) {
-      alert('Generation Error: AI Engine is at capacity.');
+      if (err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError') {
+        setStatusText('Generation canceled.');
+        return;
+      }
+      if (err?.code === 'ECONNABORTED') {
+        alert('Generation timed out. Please try again.');
+        return;
+      }
+      alert('Generation Error: AI Engine is at capacity. Please try again in a moment.');
     } finally {
+      abortRef.current = null;
+      if (statusTimerRef.current) {
+        clearInterval(statusTimerRef.current);
+        statusTimerRef.current = null;
+      }
       setLoading(false);
     }
   };
 
+  const cancelGeneration = () => {
+    abortRef.current?.abort?.();
+  };
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto relative">
+      {loading && typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="relative w-full max-w-md rounded-3xl border border-border bg-card/90 shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-border-subtle bg-card/70">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.35em] text-text-secondary">Generating</p>
+                    <h3 className="text-lg font-black mt-1">Building your protocol</h3>
+                  </div>
+                  <div className="p-2 rounded-full bg-primary/10">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-5">
+                <div className="px-3 py-2 rounded-xl border border-border-subtle bg-white/5">
+                  <div className="text-[11px] font-black uppercase tracking-widest text-text-secondary">
+                    {statusText}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="h-[10px] rounded-full bg-white/5 overflow-hidden border border-border-subtle">
+                    <div className="h-full w-[55%] bg-primary/40 animate-pulse" />
+                  </div>
+                  <div className="h-[10px] rounded-full bg-white/5 overflow-hidden border border-border-subtle">
+                    <div className="h-full w-[72%] bg-accent/30 animate-pulse [animation-delay:120ms]" />
+                  </div>
+                  <div className="h-[10px] rounded-full bg-white/5 overflow-hidden border border-border-subtle">
+                    <div className="h-full w-[45%] bg-white/10 animate-pulse [animation-delay:240ms]" />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <Button type="button" variant="secondary" onClick={cancelGeneration}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      }
       {/* Progress Stepper */}
       <div className="flex justify-between items-center mb-12 relative px-4">
         <div className="absolute top-1/2 left-0 w-full h-[1px] bg-border -translate-y-1/2 z-0" />
@@ -221,29 +331,34 @@ const DietForm = ({ onPlanGenerated }) => {
             Back
           </Button>
 
-          <div className="flex gap-4">
-            {currentStep === steps.length - 1 ? (
-              <Button
-                type="button"
-                variant="primary"
-                onClick={generatePlan}
-                loading={loading}
-                className="px-8"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Build Protocol
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="primary"
-                onClick={nextStep}
-                className="px-8"
-              >
-                Continue
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            )}
+          <div className="flex gap-4 items-center">
+            {/* New wrapper div for action buttons to prevent them from shrinking */}
+            <div className="flex-shrink-0 flex gap-4 items-center">
+              {currentStep === steps.length - 1 ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={generatePlan}
+                    loading={loading}
+                    className="px-8"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Build Protocol
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={nextStep}
+                  className="px-8"
+                >
+                  Continue
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </form>

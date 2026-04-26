@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -6,9 +6,10 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import BioLab from "./pages/BioLab";
+const Auth = React.lazy(() => import("./pages/Auth"));
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+const BioLab = React.lazy(() => import("./pages/BioLab"));
+import { startBackendKeepAlive } from "./utils/keepAlive";
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -20,31 +21,43 @@ const AppRoutes = () => {
   const { user } = useAuth();
 
   return (
-    <Routes>
-      <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/" />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/lab"
-        element={
-          <ProtectedRoute>
-            <BioLab />
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-bg-primary flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <Routes>
+        <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/" />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/lab"
+          element={
+            <ProtectedRoute>
+              <BioLab />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 };
 
 import { ThemeProvider } from "./context/ThemeContext";
 
 function App() {
+  React.useEffect(() => {
+    return startBackendKeepAlive({ intervalMs: 5 * 60 * 1000, immediate: true });
+  }, []);
+
   return (
     <ThemeProvider>
       <Router>

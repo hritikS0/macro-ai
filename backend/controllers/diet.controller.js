@@ -90,8 +90,11 @@ export class DietController {
     try {
       const userId = req.user.id;
       const plan = await DietService.getActivePlan(userId);
-      const history = await ChatRepository.getRecentMessages(userId, plan?.id, 20);
-      res.status(200).json(history);
+      const limit = Math.min(Number(req.query.limit || 20), 50);
+      const before = req.query.before || undefined;
+      const history = await ChatRepository.getMessagesPage(userId, plan?.id, { limit, before });
+      const nextBefore = history.length > 0 ? history[0].created_at : null;
+      res.status(200).json({ messages: history, nextBefore });
     } catch (error) {
        res.status(500).json({ error: error.message || 'Failed to fetch chat history' });
     }
