@@ -98,7 +98,11 @@ const Auth = () => {
                 {isSignUp ? 'Already a member?' : 'New to biological optimization?'}
               </p>
               <button
-                onClick={() => setIsSignUp(!isSignUp)}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsSignUp((v) => !v);
+                }}
                 className="mt-3 text-brand-primary font-bold text-sm flex items-center justify-center gap-1.5 mx-auto hover:gap-2.5 transition-all group"
               >
                 {isSignUp ? 'Sign In Instead' : 'Create Evolution Profile'}
