@@ -6,6 +6,7 @@ import Button from './ui/Button';
 import { Card } from './ui/Card';
 import { Input, Select } from './ui/Input';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const steps = [
   { id: 1, title: 'Identity', icon: User },
@@ -20,6 +21,7 @@ const DietForm = ({ onPlanGenerated }) => {
   const [unitSystem, setUnitSystem] = useState('metric');
   const abortRef = React.useRef(null);
   const statusTimerRef = React.useRef(null);
+  const toast = useToast();
   const [formData, setFormData] = useState({
     age: '',
     gender: 'male',
@@ -114,16 +116,18 @@ const DietForm = ({ onPlanGenerated }) => {
       abortRef.current = controller;
       const response = await api.post('/diet/generate', payload, { timeout: 120000, signal: controller.signal });
       onPlanGenerated(response.data);
+      toast.success('Your personalized diet protocol is ready!', 'Plan Generated');
     } catch (err) {
       if (err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError') {
         setStatusText('Generation canceled.');
+        toast.info('Generation was canceled.', 'Plan Generation');
         return;
       }
       if (err?.code === 'ECONNABORTED') {
-        alert('Generation timed out. Please try again.');
+        toast.warning('Generation timed out. Please try again.', 'Timeout');
         return;
       }
-      alert('Generation Error: AI Engine is at capacity. Please try again in a moment.');
+      toast.error('AI Engine is at capacity. Please try again in a moment.', 'Generation Failed');
     } finally {
       abortRef.current = null;
       if (statusTimerRef.current) {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { Card } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -12,6 +13,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp, signIn } = useAuth();
+  const toast = useToast();
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -22,9 +24,13 @@ const Auth = () => {
         : await signIn({ email, password });
       
       if (error) throw error;
-      if (isSignUp) alert('Check your email for confirmation!');
+      if (isSignUp) {
+        toast.success('Check your email for confirmation!', 'Account Created');
+      } else {
+        toast.success('Welcome back!', 'Login Successful');
+      }
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message, 'Authentication Failed');
     } finally {
       setLoading(false);
     }

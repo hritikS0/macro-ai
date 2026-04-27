@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import api from "../services/api";
 import DietForm from "../components/DietForm";
 import { Card } from "../components/ui/Card";
@@ -39,6 +40,7 @@ import NavSidebar from "../components/NavSidebar";
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const toast = useToast();
 
   const [activePlan, setActivePlan] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -90,8 +92,9 @@ const Dashboard = () => {
       const response = await api.post("/diet/regenerate-meal", payload);
       setActivePlan(response.data);
       setRefiningSection(null);
+      toast.success(`${refiningSection.name} has been refined.`, 'Update Complete');
     } catch (err) {
-      alert(`Failed to refine ${refiningSection.type}. AI coach is busy.`);
+      toast.warning(`AI coach is busy. Please try again.`, 'Refinement Failed');
     } finally {
       setLoading(false);
     }
@@ -102,8 +105,9 @@ const Dashboard = () => {
     setIsExporting(true);
     try {
       await exportToPDF(activePlan);
+      toast.success('PDF exported successfully.', 'Download Ready');
     } catch (err) {
-      alert("PDF export failed.");
+      toast.error('Failed to export PDF. Please try again.', 'Export Failed');
     } finally {
       setIsExporting(false);
     }

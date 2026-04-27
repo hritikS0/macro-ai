@@ -9,13 +9,14 @@ const Button = ({
   size = 'md', 
   loading, 
   icon: Icon,
+  disabled,
   ...props 
 }) => {
   const variants = {
     primary: 'btn-primary',
     secondary: 'btn-secondary',
     ghost: 'btn-ghost',
-    danger: 'btn-primary bg-danger hover:opacity-90', // Custom danger override
+    danger: 'btn-danger',
   };
 
   const sizes = {
@@ -24,18 +25,18 @@ const Button = ({
     lg: 'text-base px-6 py-3',
   };
 
-
-
   return (
     <motion.button
-      whileTap={{ scale: 0.98 }}
+      whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
+      whileHover={{ scale: disabled || loading ? 1 : 1.02 }}
       className={cn(
-        'relative inline-flex items-center justify-center font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed',
+        'relative inline-flex items-center justify-center font-bold rounded-lg transition-all',
         variants[variant],
         sizes[size],
+        disabled && 'opacity-50 cursor-not-allowed',
         className
       )}
-      disabled={loading}
+      disabled={disabled || loading}
       {...props}
     >
       {loading ? (

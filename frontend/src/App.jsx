@@ -52,6 +52,7 @@ const AppRoutes = () => {
 };
 
 import { ThemeProvider } from "./context/ThemeContext";
+import { ToastProvider } from "./context/ToastContext";
 
 function App() {
   React.useEffect(() => {
@@ -60,11 +61,13 @@ function App() {
 
   return (
     <ThemeProvider>
-      <Router>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </Router>
+      <ToastProvider>
+        <Router>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </Router>
+      </ToastProvider>
     </ThemeProvider>
   );
 }
